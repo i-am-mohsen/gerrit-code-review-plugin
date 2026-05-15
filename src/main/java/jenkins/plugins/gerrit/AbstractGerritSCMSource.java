@@ -645,6 +645,14 @@ public abstract class AbstractGerritSCMSource extends AbstractGitSCMSource {
 
       EnvVars envVars = new EnvVars(EnvVars.masterEnvVars);
       if (needsCfHeaders) {
+        String cfHeaderKey;
+        try {
+          cfHeaderKey =
+              "http." + new URIish(remoteUrl).getHost() + "/.extraHeader";
+        } catch (URISyntaxException e) {
+          throw new IOException(e);
+        }
+
         int count = 0;
         String existingCount = envVars.get("GIT_CONFIG_COUNT");
         if (existingCount != null) {
@@ -654,13 +662,57 @@ public abstract class AbstractGerritSCMSource extends AbstractGitSCMSource {
             // ignore
           }
         }
-        envVars.put("GIT_CONFIG_KEY_" + count, "http.extraHeader");
-        envVars.put("GIT_CONFIG_VALUE_" + count, "CF-Access-Client-Id: " + cfClientId);
+        envVars.put("GIT_CONFIG_KEY_" + count, cfHeaderKey);
+        envVars.put(
+            "GIT_CONFIG_VALUE_" + count, "CF-Access-Client-Id: " + cfClientId);
         count++;
-        envVars.put("GIT_CONFIG_KEY_" + count, "http.extraHeader");
-        envVars.put("GIT_CONFIG_VALUE_" + count, "CF-Access-Client-Secret: " + cfClientSecret);
+        envVars.put("GIT_CONFIG_KEY_" + count, cfHeaderKey);
+        envVars.put(
+            "GIT_CONFIG_VALUE_" + count,
+            "CF-Access-Client-Secret: " + cfClientSecret);
         count++;
         envVars.put("GIT_CONFIG_COUNT", String.valueOf(count));
+
+        synchronized (EnvVars.masterEnvVars) {
+          boolean alreadySet = false;
+          String mcCount = EnvVars.masterEnvVars.get("GIT_CONFIG_COUNT");
+          if (mcCount != null) {
+            try {
+              int c = Integer.parseInt(mcCount);
+              for (int i = 0; i < c; i++) {
+                String v = EnvVars.masterEnvVars.get("GIT_CONFIG_VALUE_" + i);
+                if (v != null && v.startsWith("CF-Access-Client-Id:")) {
+                  alreadySet = true;
+                  break;
+                }
+              }
+            } catch (NumberFormatException e) {
+              // ignore
+            }
+          }
+          if (!alreadySet) {
+            int mc = 0;
+            if (mcCount != null) {
+              try {
+                mc = Integer.parseInt(mcCount);
+              } catch (NumberFormatException e) {
+                // ignore
+              }
+            }
+            EnvVars.masterEnvVars.put("GIT_CONFIG_KEY_" + mc, cfHeaderKey);
+            EnvVars.masterEnvVars.put(
+                "GIT_CONFIG_VALUE_" + mc,
+                "CF-Access-Client-Id: " + cfClientId);
+            mc++;
+            EnvVars.masterEnvVars.put("GIT_CONFIG_KEY_" + mc, cfHeaderKey);
+            EnvVars.masterEnvVars.put(
+                "GIT_CONFIG_VALUE_" + mc,
+                "CF-Access-Client-Secret: " + cfClientSecret);
+            mc++;
+            EnvVars.masterEnvVars.put(
+                "GIT_CONFIG_COUNT", String.valueOf(mc));
+          }
+        }
       }
 
       Git git = Git.with(listener, envVars).in(cacheDir);

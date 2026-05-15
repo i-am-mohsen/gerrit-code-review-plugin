@@ -14,6 +14,8 @@
 
 package jenkins.plugins.gerrit;
 
+import com.cloudbees.plugins.credentials.CredentialsMatchers;
+import com.cloudbees.plugins.credentials.CredentialsProvider;
 import com.google.common.collect.ImmutableList;
 import com.google.gerrit.extensions.api.GerritApi;
 import com.google.gerrit.extensions.api.changes.Changes;
@@ -29,9 +31,9 @@ import hudson.EnvVars;
 import hudson.model.Action;
 import hudson.model.Actionable;
 import hudson.model.TaskListener;
-import hudson.util.Secret;
 import hudson.plugins.git.Branch;
 import hudson.plugins.git.GitTool;
+import hudson.security.ACL;
 import java.io.File;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
@@ -57,6 +59,7 @@ import java.util.stream.Stream;
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+import jenkins.model.Jenkins;
 import jenkins.plugins.git.AbstractGitSCMSource;
 import jenkins.plugins.git.GitRemoteHeadRefAction;
 import jenkins.plugins.git.GitSCMBuilder;
@@ -78,6 +81,7 @@ import org.eclipse.jgit.lib.Constants;
 import org.eclipse.jgit.lib.FileMode;
 import org.eclipse.jgit.lib.ObjectId;
 import org.eclipse.jgit.lib.Repository;
+import org.eclipse.jgit.lib.StoredConfig;
 import org.eclipse.jgit.revwalk.RevCommit;
 import org.eclipse.jgit.revwalk.RevTree;
 import org.eclipse.jgit.revwalk.RevWalk;
@@ -87,6 +91,8 @@ import org.eclipse.jgit.treewalk.TreeWalk;
 import org.jenkinsci.plugins.gitclient.FetchCommand;
 import org.jenkinsci.plugins.gitclient.Git;
 import org.jenkinsci.plugins.gitclient.GitClient;
+import org.jenkinsci.plugins.gitclient.RepositoryCallback;
+import org.jenkinsci.plugins.plaincredentials.StringCredentials;
 
 public abstract class AbstractGerritSCMSource extends AbstractGitSCMSource {
   public static final String R_CHANGES = "refs/changes/";
@@ -113,12 +119,12 @@ public abstract class AbstractGerritSCMSource extends AbstractGitSCMSource {
   }
 
   @CheckForNull
-  public Secret getCloudflareClientId() {
+  public String getCloudflareClientIdCredentialId() {
     return null;
   }
 
   @CheckForNull
-  public Secret getCloudflareClientSecret() {
+  public String getCloudflareClientSecretCredentialId() {
     return null;
   }
 
@@ -696,7 +702,44 @@ public abstract class AbstractGerritSCMSource extends AbstractGitSCMSource {
       }
 
       if (!fetchRefSpecs.isEmpty()) {
-        fetch.from(remoteURI, fetchRefSpecs).execute();
+        String cfClientId = resolveCloudflareClientId();
+        String cfClientSecret = resolveCloudflareClientSecret();
+        String remoteUrl = getRemote();
+        boolean needsCfHeaders = cfClientId != null && cfClientSecret != null
+            && remoteUrl != null
+            && (remoteUrl.startsWith("http://") || remoteUrl.startsWith("https://"));
+        final String[] savedHeaders;
+        if (needsCfHeaders) {
+          savedHeaders = client.withRepository((repo, c) -> {
+            StoredConfig config = repo.getConfig();
+            String[] existing = config.getStringList("http", remoteUrl, "extraHeader");
+            List<String> headers = new ArrayList<>();
+            headers.add("CF-Access-Client-Id: " + cfClientId);
+            headers.add("CF-Access-Client-Secret: " + cfClientSecret);
+            Collections.addAll(headers, existing);
+            config.setStringList("http", remoteUrl, "extraHeader", headers);
+            config.save();
+            return existing;
+          });
+        } else {
+          savedHeaders = new String[0];
+        }
+        try {
+          fetch.from(remoteURI, fetchRefSpecs).execute();
+        } finally {
+          if (needsCfHeaders) {
+            client.withRepository((repo, c) -> {
+              StoredConfig config = repo.getConfig();
+              if (savedHeaders.length > 0) {
+                config.setStringList("http", remoteUrl, "extraHeader", Arrays.asList(savedHeaders));
+              } else {
+                config.unset("http", remoteUrl, "extraHeader");
+              }
+              config.save();
+              return null;
+            });
+          }
+        }
       }
 
       return retriever.run(client, context, remoteName, changeQuery);
@@ -741,16 +784,44 @@ public abstract class AbstractGerritSCMSource extends AbstractGitSCMSource {
               .insecureHttps(getInsecureHttps())
               .credentials(credentials.username, credentials.password);
 
-      Secret cfId = getCloudflareClientId();
-      Secret cfSecret = getCloudflareClientSecret();
-      if (cfId != null && cfSecret != null) {
-        builder.cloudflareAccessCredentials(cfId.getPlainText(), cfSecret.getPlainText());
+      String cfClientId = resolveCloudflareClientId();
+      String cfClientSecret = resolveCloudflareClientSecret();
+      if (cfClientId != null && cfClientSecret != null) {
+        builder.cloudflareAccessCredentials(cfClientId, cfClientSecret);
       }
 
       return builder;
     } catch (URISyntaxException e) {
       throw new IOException(e);
     }
+  }
+
+  @CheckForNull
+  private String resolveCloudflareClientId() {
+    String credentialId = getCloudflareClientIdCredentialId();
+    if (credentialId == null) return null;
+    StringCredentials credential = CredentialsMatchers.firstOrNull(
+        CredentialsProvider.lookupCredentials(
+            StringCredentials.class,
+            Jenkins.getInstance(),
+            ACL.SYSTEM,
+            Collections.emptyList()),
+        CredentialsMatchers.withId(credentialId));
+    return credential != null ? credential.getSecret().getPlainText() : null;
+  }
+
+  @CheckForNull
+  private String resolveCloudflareClientSecret() {
+    String credentialId = getCloudflareClientSecretCredentialId();
+    if (credentialId == null) return null;
+    StringCredentials credential = CredentialsMatchers.firstOrNull(
+        CredentialsProvider.lookupCredentials(
+            StringCredentials.class,
+            Jenkins.getInstance(),
+            ACL.SYSTEM,
+            Collections.emptyList()),
+        CredentialsMatchers.withId(credentialId));
+    return credential != null ? credential.getSecret().getPlainText() : null;
   }
 
   private GerritApi createGerritApi(@Nonnull TaskListener listener, GerritURI remoteUri)

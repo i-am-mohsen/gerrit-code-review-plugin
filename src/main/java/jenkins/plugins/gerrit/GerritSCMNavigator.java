@@ -32,10 +32,10 @@ import hudson.model.queue.Tasks;
 import hudson.security.ACL;
 import hudson.util.FormValidation;
 import hudson.util.ListBoxModel;
-import hudson.util.Secret;
 import java.io.IOException;
 import java.net.URISyntaxException;
 import java.util.Collections;
+import org.jenkinsci.plugins.plaincredentials.StringCredentials;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -64,8 +64,8 @@ public class GerritSCMNavigator extends SCMNavigator {
   @CheckForNull private String serverUrl;
   private boolean insecureHttps;
   @CheckForNull private String credentialsId;
-  @CheckForNull private Secret cloudflareClientId;
-  @CheckForNull private Secret cloudflareClientSecret;
+  @CheckForNull private String cloudflareClientIdCredentialId;
+  @CheckForNull private String cloudflareClientSecretCredentialId;
   @Nonnull private List<? extends SCMTrait<?>> traits;
 
   public GerritSCMNavigator() {
@@ -77,14 +77,14 @@ public class GerritSCMNavigator extends SCMNavigator {
       String serverUrl,
       boolean insecureHttps,
       String credentialsId,
-      Secret cloudflareClientId,
-      Secret cloudflareClientSecret,
+      String cloudflareClientIdCredentialId,
+      String cloudflareClientSecretCredentialId,
       List<? extends SCMTrait<?>> traits) {
     this.serverUrl = StringUtils.trimToNull(serverUrl);
     this.insecureHttps = insecureHttps;
     this.credentialsId = StringUtils.defaultIfBlank(credentialsId, null);
-    this.cloudflareClientId = cloudflareClientId;
-    this.cloudflareClientSecret = cloudflareClientSecret;
+    this.cloudflareClientIdCredentialId = StringUtils.defaultIfBlank(cloudflareClientIdCredentialId, null);
+    this.cloudflareClientSecretCredentialId = StringUtils.defaultIfBlank(cloudflareClientSecretCredentialId, null);
     this.traits =
         ofNullable(traits).map(Collections::unmodifiableList).orElseGet(Collections::emptyList);
   }
@@ -126,8 +126,8 @@ public class GerritSCMNavigator extends SCMNavigator {
                       gerritURI,
                       insecureHttps,
                       credentialsId,
-                      cloudflareClientId,
-                      cloudflareClientSecret)
+                      cloudflareClientIdCredentialId,
+                      cloudflareClientSecretCredentialId)
                   .withRequest(request)
                   .build();
 
@@ -151,9 +151,10 @@ public class GerritSCMNavigator extends SCMNavigator {
             .insecureHttps(insecureHttps)
             .credentials(lookupCredentials(observer.getContext()));
 
-    if (cloudflareClientId != null && cloudflareClientSecret != null) {
-      builder.cloudflareAccessCredentials(
-          cloudflareClientId.getPlainText(), cloudflareClientSecret.getPlainText());
+    String cfClientId = resolveStringCredential(cloudflareClientIdCredentialId);
+    String cfClientSecret = resolveStringCredential(cloudflareClientSecretCredentialId);
+    if (cfClientId != null && cfClientSecret != null) {
+      builder.cloudflareAccessCredentials(cfClientId, cfClientSecret);
     }
 
     return builder;
@@ -171,6 +172,19 @@ public class GerritSCMNavigator extends SCMNavigator {
             ACL.SYSTEM,
             URIRequirementBuilder.fromUri(serverUrl).build()),
         CredentialsMatchers.allOf(CredentialsMatchers.withId(credentialsId)));
+  }
+
+  @CheckForNull
+  private String resolveStringCredential(@CheckForNull String credentialId) {
+    if (credentialId == null) return null;
+    StringCredentials credential = CredentialsMatchers.firstOrNull(
+        CredentialsProvider.lookupCredentials(
+            StringCredentials.class,
+            Jenkins.getInstance(),
+            ACL.SYSTEM,
+            Collections.emptyList()),
+        CredentialsMatchers.withId(credentialId));
+    return credential != null ? credential.getSecret().getPlainText() : null;
   }
 
   private URIish getGerritApiURI() throws URISyntaxException {
@@ -257,23 +271,23 @@ public class GerritSCMNavigator extends SCMNavigator {
   }
 
   @DataBoundSetter
-  public void setCloudflareClientId(@CheckForNull Secret cloudflareClientId) {
-    this.cloudflareClientId = cloudflareClientId;
+  public void setCloudflareClientIdCredentialId(@CheckForNull String cloudflareClientIdCredentialId) {
+    this.cloudflareClientIdCredentialId = cloudflareClientIdCredentialId;
   }
 
   @CheckForNull
-  public Secret getCloudflareClientId() {
-    return cloudflareClientId;
+  public String getCloudflareClientIdCredentialId() {
+    return cloudflareClientIdCredentialId;
   }
 
   @DataBoundSetter
-  public void setCloudflareClientSecret(@CheckForNull Secret cloudflareClientSecret) {
-    this.cloudflareClientSecret = cloudflareClientSecret;
+  public void setCloudflareClientSecretCredentialId(@CheckForNull String cloudflareClientSecretCredentialId) {
+    this.cloudflareClientSecretCredentialId = cloudflareClientSecretCredentialId;
   }
 
   @CheckForNull
-  public Secret getCloudflareClientSecret() {
-    return cloudflareClientSecret;
+  public String getCloudflareClientSecretCredentialId() {
+    return cloudflareClientSecretCredentialId;
   }
 
   public boolean isInsecureHttps() {

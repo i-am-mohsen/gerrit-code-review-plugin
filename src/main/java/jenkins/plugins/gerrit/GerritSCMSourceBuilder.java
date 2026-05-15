@@ -15,7 +15,6 @@
 package jenkins.plugins.gerrit;
 
 import edu.umd.cs.findbugs.annotations.NonNull;
-import hudson.util.Secret;
 import java.net.URISyntaxException;
 import javax.annotation.CheckForNull;
 import jenkins.scm.api.trait.SCMSourceBuilder;
@@ -28,8 +27,8 @@ public class GerritSCMSourceBuilder
   private final GerritURI gerritURI;
   private final boolean insecureHttps;
   @CheckForNull private final String credentialsId;
-  @CheckForNull private final Secret cloudflareClientId;
-  @CheckForNull private final Secret cloudflareClientSecret;
+  @CheckForNull private final String cloudflareClientIdCredentialId;
+  @CheckForNull private final String cloudflareClientSecretCredentialId;
 
   public GerritSCMSourceBuilder(
       String id,
@@ -37,15 +36,15 @@ public class GerritSCMSourceBuilder
       GerritURI gerritURI,
       boolean insecureHttps,
       @CheckForNull String credentialsId,
-      @CheckForNull Secret cloudflareClientId,
-      @CheckForNull Secret cloudflareClientSecret) {
+      @CheckForNull String cloudflareClientIdCredentialId,
+      @CheckForNull String cloudflareClientSecretCredentialId) {
     super(GerritSCMSource.class, projectName);
     this.id = id;
     this.gerritURI = gerritURI;
     this.insecureHttps = insecureHttps;
     this.credentialsId = credentialsId;
-    this.cloudflareClientId = cloudflareClientId;
-    this.cloudflareClientSecret = cloudflareClientSecret;
+    this.cloudflareClientIdCredentialId = cloudflareClientIdCredentialId;
+    this.cloudflareClientSecretCredentialId = cloudflareClientSecretCredentialId;
   }
 
   @NonNull
@@ -62,8 +61,8 @@ public class GerritSCMSourceBuilder
     scmSource.setId(id);
     scmSource.setCredentialsId(credentialsId);
     scmSource.setInsecureHttps(insecureHttps);
-    scmSource.setCloudflareClientId(cloudflareClientId);
-    scmSource.setCloudflareClientSecret(cloudflareClientSecret);
+    scmSource.setCloudflareClientIdCredentialId(cloudflareClientIdCredentialId);
+    scmSource.setCloudflareClientSecretCredentialId(cloudflareClientSecretCredentialId);
     scmSource.setTraits(traits());
     return scmSource;
   }

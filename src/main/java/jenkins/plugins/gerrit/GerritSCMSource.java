@@ -87,9 +87,9 @@ public class GerritSCMSource extends AbstractGerritSCMSource {
 
   private Secret apiKey;
 
-  @CheckForNull private Secret cloudflareClientId;
+  @CheckForNull private String cloudflareClientIdCredentialId;
 
-  @CheckForNull private Secret cloudflareClientSecret;
+  @CheckForNull private String cloudflareClientSecretCredentialId;
 
   @CheckForNull private String credentialsId;
 
@@ -292,25 +292,25 @@ public class GerritSCMSource extends AbstractGerritSCMSource {
   }
 
   @DataBoundSetter
-  public void setCloudflareClientId(@CheckForNull Secret cloudflareClientId) {
-    this.cloudflareClientId = cloudflareClientId;
+  public void setCloudflareClientIdCredentialId(@CheckForNull String cloudflareClientIdCredentialId) {
+    this.cloudflareClientIdCredentialId = cloudflareClientIdCredentialId;
   }
 
   @CheckForNull
   @Override
-  public Secret getCloudflareClientId() {
-    return cloudflareClientId;
+  public String getCloudflareClientIdCredentialId() {
+    return cloudflareClientIdCredentialId;
   }
 
   @DataBoundSetter
-  public void setCloudflareClientSecret(@CheckForNull Secret cloudflareClientSecret) {
-    this.cloudflareClientSecret = cloudflareClientSecret;
+  public void setCloudflareClientSecretCredentialId(@CheckForNull String cloudflareClientSecretCredentialId) {
+    this.cloudflareClientSecretCredentialId = cloudflareClientSecretCredentialId;
   }
 
   @CheckForNull
   @Override
-  public Secret getCloudflareClientSecret() {
-    return cloudflareClientSecret;
+  public String getCloudflareClientSecretCredentialId() {
+    return cloudflareClientSecretCredentialId;
   }
 
   @Symbol({"gerrit", "git"})

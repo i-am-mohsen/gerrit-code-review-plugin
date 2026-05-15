@@ -700,54 +700,53 @@ public abstract class AbstractGerritSCMSource extends AbstractGitSCMSource {
         throw new IOException("Unable to query Gerrit open changes", e);
       }
 
-      if (!fetchRefSpecs.isEmpty()) {
-        String cfClientId = resolveCloudflareClientId();
-        String cfClientSecret = resolveCloudflareClientSecret();
-        String remoteUrl = getRemote();
-        boolean needsCfHeaders =
-            cfClientId != null
-                && cfClientSecret != null
-                && remoteUrl != null
-                && (remoteUrl.startsWith("http://") || remoteUrl.startsWith("https://"));
-        final String[] savedHeaders;
-        if (needsCfHeaders) {
-          savedHeaders =
-              client.withRepository(
-                  (repo, c) -> {
-                    StoredConfig config = repo.getConfig();
-                    String[] existing = config.getStringList("http", remoteUrl, "extraHeader");
-                    List<String> headers = new ArrayList<>();
-                    headers.add("CF-Access-Client-Id: " + cfClientId);
-                    headers.add("CF-Access-Client-Secret: " + cfClientSecret);
-                    Collections.addAll(headers, existing);
-                    config.setStringList("http", remoteUrl, "extraHeader", headers);
-                    config.save();
-                    return existing;
-                  });
-        } else {
-          savedHeaders = new String[0];
-        }
-        try {
-          fetch.from(remoteURI, fetchRefSpecs).execute();
-        } finally {
-          if (needsCfHeaders) {
+      String cfClientId = resolveCloudflareClientId();
+      String cfClientSecret = resolveCloudflareClientSecret();
+      String remoteUrl = getRemote();
+      boolean needsCfHeaders =
+          cfClientId != null
+              && cfClientSecret != null
+              && remoteUrl != null
+              && (remoteUrl.startsWith("http://") || remoteUrl.startsWith("https://"));
+      final String[] savedHeaders;
+      if (needsCfHeaders) {
+        savedHeaders =
             client.withRepository(
                 (repo, c) -> {
                   StoredConfig config = repo.getConfig();
-                  if (savedHeaders.length > 0) {
-                    config.setStringList(
-                        "http", remoteUrl, "extraHeader", Arrays.asList(savedHeaders));
-                  } else {
-                    config.unset("http", remoteUrl, "extraHeader");
-                  }
+                  String[] existing = config.getStringList("http", remoteUrl, "extraHeader");
+                  List<String> headers = new ArrayList<>();
+                  headers.add("CF-Access-Client-Id: " + cfClientId);
+                  headers.add("CF-Access-Client-Secret: " + cfClientSecret);
+                  Collections.addAll(headers, existing);
+                  config.setStringList("http", remoteUrl, "extraHeader", headers);
                   config.save();
-                  return null;
+                  return existing;
                 });
-          }
+      } else {
+        savedHeaders = new String[0];
+      }
+      try {
+        if (!fetchRefSpecs.isEmpty()) {
+          fetch.from(remoteURI, fetchRefSpecs).execute();
+        }
+        return retriever.run(client, context, remoteName, changeQuery);
+      } finally {
+        if (needsCfHeaders) {
+          client.withRepository(
+              (repo, c) -> {
+                StoredConfig config = repo.getConfig();
+                if (savedHeaders.length > 0) {
+                  config.setStringList(
+                      "http", remoteUrl, "extraHeader", Arrays.asList(savedHeaders));
+                } else {
+                  config.unset("http", remoteUrl, "extraHeader");
+                }
+                config.save();
+                return null;
+              });
         }
       }
-
-      return retriever.run(client, context, remoteName, changeQuery);
     } finally {
       cacheLock.unlock();
     }

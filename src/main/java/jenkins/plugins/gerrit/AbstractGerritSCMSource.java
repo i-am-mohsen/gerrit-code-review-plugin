@@ -81,7 +81,6 @@ import org.eclipse.jgit.lib.Constants;
 import org.eclipse.jgit.lib.FileMode;
 import org.eclipse.jgit.lib.ObjectId;
 import org.eclipse.jgit.lib.Repository;
-import org.eclipse.jgit.lib.StoredConfig;
 import org.eclipse.jgit.revwalk.RevCommit;
 import org.eclipse.jgit.revwalk.RevTree;
 import org.eclipse.jgit.revwalk.RevWalk;
@@ -634,7 +633,37 @@ public abstract class AbstractGerritSCMSource extends AbstractGitSCMSource {
     cacheLock.lock();
     try {
       File cacheDir = getCacheDir(cacheEntry);
-      Git git = Git.with(listener, new EnvVars(EnvVars.masterEnvVars)).in(cacheDir);
+
+      String cfClientId = resolveCloudflareClientId();
+      String cfClientSecret = resolveCloudflareClientSecret();
+      String remoteUrl = getRemote();
+      boolean needsCfHeaders =
+          cfClientId != null
+              && cfClientSecret != null
+              && remoteUrl != null
+              && (remoteUrl.startsWith("http://") || remoteUrl.startsWith("https://"));
+
+      EnvVars envVars = new EnvVars(EnvVars.masterEnvVars);
+      if (needsCfHeaders) {
+        int count = 0;
+        String existingCount = envVars.get("GIT_CONFIG_COUNT");
+        if (existingCount != null) {
+          try {
+            count = Integer.parseInt(existingCount);
+          } catch (NumberFormatException e) {
+            // ignore
+          }
+        }
+        envVars.put("GIT_CONFIG_KEY_" + count, "http.extraHeader");
+        envVars.put("GIT_CONFIG_VALUE_" + count, "CF-Access-Client-Id: " + cfClientId);
+        count++;
+        envVars.put("GIT_CONFIG_KEY_" + count, "http.extraHeader");
+        envVars.put("GIT_CONFIG_VALUE_" + count, "CF-Access-Client-Secret: " + cfClientSecret);
+        count++;
+        envVars.put("GIT_CONFIG_COUNT", String.valueOf(count));
+      }
+
+      Git git = Git.with(listener, envVars).in(cacheDir);
       GitTool tool = resolveGitTool(context.gitTool());
       if (tool != null) {
         git.using(tool.getGitExe());
@@ -700,52 +729,10 @@ public abstract class AbstractGerritSCMSource extends AbstractGitSCMSource {
         throw new IOException("Unable to query Gerrit open changes", e);
       }
 
-      String cfClientId = resolveCloudflareClientId();
-      String cfClientSecret = resolveCloudflareClientSecret();
-      String remoteUrl = getRemote();
-      boolean needsCfHeaders =
-          cfClientId != null
-              && cfClientSecret != null
-              && remoteUrl != null
-              && (remoteUrl.startsWith("http://") || remoteUrl.startsWith("https://"));
-      final String[] savedHeaders;
-      if (needsCfHeaders) {
-        savedHeaders =
-            client.withRepository(
-                (repo, c) -> {
-                  StoredConfig config = repo.getConfig();
-                  String[] existing = config.getStringList("http", null, "extraHeader");
-                  List<String> headers = new ArrayList<>();
-                  headers.add("CF-Access-Client-Id: " + cfClientId);
-                  headers.add("CF-Access-Client-Secret: " + cfClientSecret);
-                  Collections.addAll(headers, existing);
-                  config.setStringList("http", null, "extraHeader", headers);
-                  config.save();
-                  return existing;
-                });
-      } else {
-        savedHeaders = new String[0];
+      if (!fetchRefSpecs.isEmpty()) {
+        fetch.from(remoteURI, fetchRefSpecs).execute();
       }
-      try {
-        if (!fetchRefSpecs.isEmpty()) {
-          fetch.from(remoteURI, fetchRefSpecs).execute();
-        }
-        return retriever.run(client, context, remoteName, changeQuery);
-      } finally {
-        if (needsCfHeaders) {
-          client.withRepository(
-              (repo, c) -> {
-                StoredConfig config = repo.getConfig();
-                if (savedHeaders.length > 0) {
-                  config.setStringList("http", null, "extraHeader", Arrays.asList(savedHeaders));
-                } else {
-                  config.unset("http", null, "extraHeader");
-                }
-                config.save();
-                return null;
-              });
-        }
-      }
+      return retriever.run(client, context, remoteName, changeQuery);
     } finally {
       cacheLock.unlock();
     }

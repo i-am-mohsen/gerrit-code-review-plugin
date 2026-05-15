@@ -29,6 +29,8 @@ public class GerritApiBuilder {
   private boolean requireAuthentication;
   private String username;
   private String password;
+  private String cloudflareClientId;
+  private String cloudflareClientSecret;
 
   public GerritApiBuilder logger(PrintStream logger) {
     this.logger = logger;
@@ -73,6 +75,12 @@ public class GerritApiBuilder {
     return this;
   }
 
+  public GerritApiBuilder cloudflareAccessCredentials(String clientId, String clientSecret) {
+    this.cloudflareClientId = clientId;
+    this.cloudflareClientSecret = clientSecret;
+    return this;
+  }
+
   public GerritApiBuilder stepContext(StepContext context)
       throws URISyntaxException, IOException, InterruptedException {
     EnvVars envVars = context.get(EnvVars.class);
@@ -99,6 +107,10 @@ public class GerritApiBuilder {
       extensions.add(UserAgentClientBuilderExtension.INSTANCE);
       if (Boolean.TRUE.equals(insecureHttps)) {
         extensions.add(SSLNoVerifyCertificateManagerClientBuilderExtension.INSTANCE);
+      }
+      if (cloudflareClientId != null && cloudflareClientSecret != null) {
+        extensions.add(
+            new CloudflareAccessClientBuilderExtension(cloudflareClientId, cloudflareClientSecret));
       }
       gerritApi =
           new GerritRestApiFactory()

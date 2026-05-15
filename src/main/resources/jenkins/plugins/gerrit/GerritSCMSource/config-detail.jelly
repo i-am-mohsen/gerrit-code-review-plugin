@@ -25,6 +25,12 @@
   <f:entry title="${%WebHook API Key}" field="apiKey">
     <f:password/>
   </f:entry>
+  <f:entry title="${%Cloudflare Access Client ID}" field="cloudflareClientId">
+    <f:password/>
+  </f:entry>
+  <f:entry title="${%Cloudflare Access Client Secret}" field="cloudflareClientSecret">
+    <f:password/>
+  </f:entry>
   <f:entry title="${%Credentials}" field="credentialsId">
     <c:select/>
   </f:entry>

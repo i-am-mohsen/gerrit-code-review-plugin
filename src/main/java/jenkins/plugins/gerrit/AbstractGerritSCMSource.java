@@ -29,6 +29,7 @@ import hudson.EnvVars;
 import hudson.model.Action;
 import hudson.model.Actionable;
 import hudson.model.TaskListener;
+import hudson.util.Secret;
 import hudson.plugins.git.Branch;
 import hudson.plugins.git.GitTool;
 import java.io.File;
@@ -108,6 +109,16 @@ public abstract class AbstractGerritSCMSource extends AbstractGitSCMSource {
 
   @SuppressFBWarnings(value = "NP_BOOLEAN_RETURN_NULL", justification = "Overridden")
   public Boolean getInsecureHttps() {
+    return null;
+  }
+
+  @CheckForNull
+  public Secret getCloudflareClientId() {
+    return null;
+  }
+
+  @CheckForNull
+  public Secret getCloudflareClientSecret() {
     return null;
   }
 
@@ -723,11 +734,20 @@ public abstract class AbstractGerritSCMSource extends AbstractGitSCMSource {
           new UsernamePasswordCredentialsProvider(getCredentials())
               .getUsernamePassword(remoteUri.getRemoteURI());
 
-      return new GerritApiBuilder()
-          .logger(listener.getLogger())
-          .gerritApiUrl(remoteUri.getApiURI())
-          .insecureHttps(getInsecureHttps())
-          .credentials(credentials.username, credentials.password);
+      GerritApiBuilder builder =
+          new GerritApiBuilder()
+              .logger(listener.getLogger())
+              .gerritApiUrl(remoteUri.getApiURI())
+              .insecureHttps(getInsecureHttps())
+              .credentials(credentials.username, credentials.password);
+
+      Secret cfId = getCloudflareClientId();
+      Secret cfSecret = getCloudflareClientSecret();
+      if (cfId != null && cfSecret != null) {
+        builder.cloudflareAccessCredentials(cfId.getPlainText(), cfSecret.getPlainText());
+      }
+
+      return builder;
     } catch (URISyntaxException e) {
       throw new IOException(e);
     }

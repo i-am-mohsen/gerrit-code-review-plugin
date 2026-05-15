@@ -32,6 +32,7 @@ import hudson.model.queue.Tasks;
 import hudson.security.ACL;
 import hudson.util.FormValidation;
 import hudson.util.ListBoxModel;
+import hudson.util.Secret;
 import java.io.IOException;
 import java.net.URISyntaxException;
 import java.util.Collections;
@@ -63,10 +64,12 @@ public class GerritSCMNavigator extends SCMNavigator {
   @CheckForNull private String serverUrl;
   private boolean insecureHttps;
   @CheckForNull private String credentialsId;
+  @CheckForNull private Secret cloudflareClientId;
+  @CheckForNull private Secret cloudflareClientSecret;
   @Nonnull private List<? extends SCMTrait<?>> traits;
 
   public GerritSCMNavigator() {
-    this(null, false, null, Collections.emptyList());
+    this(null, false, null, null, null, Collections.emptyList());
   }
 
   @DataBoundConstructor
@@ -74,10 +77,14 @@ public class GerritSCMNavigator extends SCMNavigator {
       String serverUrl,
       boolean insecureHttps,
       String credentialsId,
+      Secret cloudflareClientId,
+      Secret cloudflareClientSecret,
       List<? extends SCMTrait<?>> traits) {
     this.serverUrl = StringUtils.trimToNull(serverUrl);
     this.insecureHttps = insecureHttps;
     this.credentialsId = StringUtils.defaultIfBlank(credentialsId, null);
+    this.cloudflareClientId = cloudflareClientId;
+    this.cloudflareClientSecret = cloudflareClientSecret;
     this.traits =
         ofNullable(traits).map(Collections::unmodifiableList).orElseGet(Collections::emptyList);
   }
@@ -118,7 +125,9 @@ public class GerritSCMNavigator extends SCMNavigator {
                       projectName,
                       gerritURI,
                       insecureHttps,
-                      credentialsId)
+                      credentialsId,
+                      cloudflareClientId,
+                      cloudflareClientSecret)
                   .withRequest(request)
                   .build();
 
@@ -135,11 +144,19 @@ public class GerritSCMNavigator extends SCMNavigator {
 
   private GerritApiBuilder createGerritApiBuilder(@Nonnull SCMSourceObserver observer)
       throws URISyntaxException {
-    return new GerritApiBuilder()
-        .logger(observer.getListener().getLogger())
-        .gerritApiUrl(getGerritApiURI())
-        .insecureHttps(insecureHttps)
-        .credentials(lookupCredentials(observer.getContext()));
+    GerritApiBuilder builder =
+        new GerritApiBuilder()
+            .logger(observer.getListener().getLogger())
+            .gerritApiUrl(getGerritApiURI())
+            .insecureHttps(insecureHttps)
+            .credentials(lookupCredentials(observer.getContext()));
+
+    if (cloudflareClientId != null && cloudflareClientSecret != null) {
+      builder.cloudflareAccessCredentials(
+          cloudflareClientId.getPlainText(), cloudflareClientSecret.getPlainText());
+    }
+
+    return builder;
   }
 
   @CheckForNull
@@ -181,7 +198,7 @@ public class GerritSCMNavigator extends SCMNavigator {
 
     @Override
     public SCMNavigator newInstance(String name) {
-      return new GerritSCMNavigator(null, false, null, delegate.getTraitsDefaults());
+      return new GerritSCMNavigator(null, false, null, null, null, delegate.getTraitsDefaults());
     }
 
     @NonNull
@@ -237,6 +254,26 @@ public class GerritSCMNavigator extends SCMNavigator {
   @DataBoundSetter
   public void setServerUrl(String serverUrl) {
     this.serverUrl = serverUrl;
+  }
+
+  @DataBoundSetter
+  public void setCloudflareClientId(@CheckForNull Secret cloudflareClientId) {
+    this.cloudflareClientId = cloudflareClientId;
+  }
+
+  @CheckForNull
+  public Secret getCloudflareClientId() {
+    return cloudflareClientId;
+  }
+
+  @DataBoundSetter
+  public void setCloudflareClientSecret(@CheckForNull Secret cloudflareClientSecret) {
+    this.cloudflareClientSecret = cloudflareClientSecret;
+  }
+
+  @CheckForNull
+  public Secret getCloudflareClientSecret() {
+    return cloudflareClientSecret;
   }
 
   public boolean isInsecureHttps() {

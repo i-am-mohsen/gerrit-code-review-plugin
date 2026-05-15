@@ -87,6 +87,10 @@ public class GerritSCMSource extends AbstractGerritSCMSource {
 
   private Secret apiKey;
 
+  @CheckForNull private Secret cloudflareClientId;
+
+  @CheckForNull private Secret cloudflareClientSecret;
+
   @CheckForNull private String credentialsId;
 
   private List<SCMSourceTrait> traits = new ArrayList<>();
@@ -285,6 +289,28 @@ public class GerritSCMSource extends AbstractGerritSCMSource {
 
   public Secret getApiKey() {
     return apiKey;
+  }
+
+  @DataBoundSetter
+  public void setCloudflareClientId(@CheckForNull Secret cloudflareClientId) {
+    this.cloudflareClientId = cloudflareClientId;
+  }
+
+  @CheckForNull
+  @Override
+  public Secret getCloudflareClientId() {
+    return cloudflareClientId;
+  }
+
+  @DataBoundSetter
+  public void setCloudflareClientSecret(@CheckForNull Secret cloudflareClientSecret) {
+    this.cloudflareClientSecret = cloudflareClientSecret;
+  }
+
+  @CheckForNull
+  @Override
+  public Secret getCloudflareClientSecret() {
+    return cloudflareClientSecret;
   }
 
   @Symbol({"gerrit", "git"})

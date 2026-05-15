@@ -714,12 +714,12 @@ public abstract class AbstractGerritSCMSource extends AbstractGitSCMSource {
             client.withRepository(
                 (repo, c) -> {
                   StoredConfig config = repo.getConfig();
-                  String[] existing = config.getStringList("http", remoteUrl, "extraHeader");
+                  String[] existing = config.getStringList("http", null, "extraHeader");
                   List<String> headers = new ArrayList<>();
                   headers.add("CF-Access-Client-Id: " + cfClientId);
                   headers.add("CF-Access-Client-Secret: " + cfClientSecret);
                   Collections.addAll(headers, existing);
-                  config.setStringList("http", remoteUrl, "extraHeader", headers);
+                  config.setStringList("http", null, "extraHeader", headers);
                   config.save();
                   return existing;
                 });
@@ -737,10 +737,9 @@ public abstract class AbstractGerritSCMSource extends AbstractGitSCMSource {
               (repo, c) -> {
                 StoredConfig config = repo.getConfig();
                 if (savedHeaders.length > 0) {
-                  config.setStringList(
-                      "http", remoteUrl, "extraHeader", Arrays.asList(savedHeaders));
+                  config.setStringList("http", null, "extraHeader", Arrays.asList(savedHeaders));
                 } else {
-                  config.unset("http", remoteUrl, "extraHeader");
+                  config.unset("http", null, "extraHeader");
                 }
                 config.save();
                 return null;

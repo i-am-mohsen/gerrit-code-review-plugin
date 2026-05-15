@@ -14,6 +14,7 @@
 
 package jenkins.plugins.gerrit;
 
+import com.cloudbees.plugins.credentials.CredentialsMatchers;
 import com.cloudbees.plugins.credentials.CredentialsProvider;
 import com.cloudbees.plugins.credentials.common.StandardListBoxModel;
 import com.cloudbees.plugins.credentials.common.StandardUsernameCredentials;
@@ -41,6 +42,7 @@ import java.net.URISyntaxException;
 import java.util.*;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import org.jenkinsci.plugins.plaincredentials.StringCredentials;
 import java.util.regex.Pattern;
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
@@ -386,6 +388,38 @@ public class GerritSCMSource extends AbstractGerritSCMSource {
       }
       // no credentials available, can't check
       return FormValidation.warning("Cannot find any credentials with id " + value);
+    }
+
+    public ListBoxModel doFillCloudflareClientIdCredentialIdItems(
+        @AncestorInPath Item context,
+        @QueryParameter String cloudflareClientIdCredentialId) {
+      return new StandardListBoxModel()
+          .includeEmptyValue()
+          .includeMatchingAs(
+              context instanceof Queue.Task
+                  ? Tasks.getAuthenticationOf((Queue.Task) context)
+                  : ACL.SYSTEM,
+              context,
+              StringCredentials.class,
+              Collections.emptyList(),
+              CredentialsMatchers.always())
+          .includeCurrentValue(cloudflareClientIdCredentialId);
+    }
+
+    public ListBoxModel doFillCloudflareClientSecretCredentialIdItems(
+        @AncestorInPath Item context,
+        @QueryParameter String cloudflareClientSecretCredentialId) {
+      return new StandardListBoxModel()
+          .includeEmptyValue()
+          .includeMatchingAs(
+              context instanceof Queue.Task
+                  ? Tasks.getAuthenticationOf((Queue.Task) context)
+                  : ACL.SYSTEM,
+              context,
+              StringCredentials.class,
+              Collections.emptyList(),
+              CredentialsMatchers.always())
+          .includeCurrentValue(cloudflareClientSecretCredentialId);
     }
 
     @SuppressWarnings("deprecation")

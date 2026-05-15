@@ -251,6 +251,38 @@ public class GerritSCMNavigator extends SCMNavigator {
           .includeCurrentValue(credentialsId);
     }
 
+    public ListBoxModel doFillCloudflareClientIdCredentialIdItems(
+        @AncestorInPath Item context,
+        @QueryParameter String cloudflareClientIdCredentialId) {
+      return new StandardListBoxModel()
+          .includeEmptyValue()
+          .includeMatchingAs(
+              context instanceof Queue.Task
+                  ? Tasks.getAuthenticationOf((Queue.Task) context)
+                  : ACL.SYSTEM,
+              context,
+              StringCredentials.class,
+              Collections.emptyList(),
+              CredentialsMatchers.always())
+          .includeCurrentValue(cloudflareClientIdCredentialId);
+    }
+
+    public ListBoxModel doFillCloudflareClientSecretCredentialIdItems(
+        @AncestorInPath Item context,
+        @QueryParameter String cloudflareClientSecretCredentialId) {
+      return new StandardListBoxModel()
+          .includeEmptyValue()
+          .includeMatchingAs(
+              context instanceof Queue.Task
+                  ? Tasks.getAuthenticationOf((Queue.Task) context)
+                  : ACL.SYSTEM,
+              context,
+              StringCredentials.class,
+              Collections.emptyList(),
+              CredentialsMatchers.always())
+          .includeCurrentValue(cloudflareClientSecretCredentialId);
+    }
+
     public List<NamedArrayList<? extends SCMSourceTraitDescriptor>> getTraitsDescriptorLists() {
       return delegate.getTraitsDescriptorLists();
     }

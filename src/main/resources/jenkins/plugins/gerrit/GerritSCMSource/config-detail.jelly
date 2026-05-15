@@ -26,10 +26,10 @@
     <f:password/>
   </f:entry>
   <f:entry title="${%Cloudflare Access Client ID Credential}" field="cloudflareClientIdCredentialId">
-    <f:textbox/>
+    <c:select/>
   </f:entry>
   <f:entry title="${%Cloudflare Access Client Secret Credential}" field="cloudflareClientSecretCredentialId">
-    <f:textbox/>
+    <c:select/>
   </f:entry>
   <f:entry title="${%Credentials}" field="credentialsId">
     <c:select/>

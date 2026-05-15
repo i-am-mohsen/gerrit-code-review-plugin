@@ -47,7 +47,7 @@ public class GerritSCMNavigatorTest {
   @Test
   public void testId() {
     GerritSCMNavigator navigator =
-        new GerritSCMNavigator(g.getUrl(), false, null, Collections.emptyList());
+        new GerritSCMNavigator(g.getUrl(), false, null, null, null, Collections.emptyList());
     assertEquals(
         GerritSCMNavigator.class.getName() + "::server-url=" + g.getUrl() + "::credentials-id=null",
         navigator.getId());
@@ -59,7 +59,7 @@ public class GerritSCMNavigatorTest {
     g.addProject(createProject("bar"));
 
     GerritSCMNavigator navigator =
-        new GerritSCMNavigator(g.getUrl(), false, null, Collections.emptyList());
+        new GerritSCMNavigator(g.getUrl(), false, null, null, null, Collections.emptyList());
     RecordingSCMSourceObserver sourceObserver = new RecordingSCMSourceObserver();
     navigator.visitSources(sourceObserver);
 
@@ -88,7 +88,7 @@ public class GerritSCMNavigatorTest {
     RefSpecsSCMSourceTrait trait = new RefSpecsSCMSourceTrait();
     GerritSCMNavigator navigator =
         new GerritSCMNavigator(
-            g.getUrl(), true, "my-credentials", Collections.singletonList(trait));
+            g.getUrl(), true, "my-credentials", null, null, Collections.singletonList(trait));
 
     RecordingSCMSourceObserver sourceObserver = new RecordingSCMSourceObserver();
     navigator.visitSources(sourceObserver);

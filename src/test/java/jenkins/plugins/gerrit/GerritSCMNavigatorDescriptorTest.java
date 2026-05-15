@@ -45,6 +45,8 @@ public class GerritSCMNavigatorDescriptorTest {
             "https://gerrit.example.org",
             true,
             "my-credentials-id",
+            null,
+            null,
             Collections.singletonList(
                 new RefSpecsSCMSourceTrait(AbstractGitSCMSource.REF_SPEC_DEFAULT)));
 

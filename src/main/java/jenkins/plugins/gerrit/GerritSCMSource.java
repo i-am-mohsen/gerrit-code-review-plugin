@@ -42,7 +42,6 @@ import java.net.URISyntaxException;
 import java.util.*;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import org.jenkinsci.plugins.plaincredentials.StringCredentials;
 import java.util.regex.Pattern;
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
@@ -69,6 +68,7 @@ import org.eclipse.jgit.transport.RefSpec;
 import org.eclipse.jgit.transport.URIish;
 import org.jenkinsci.Symbol;
 import org.jenkinsci.plugins.gitclient.GitClient;
+import org.jenkinsci.plugins.plaincredentials.StringCredentials;
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.DoNotUse;
 import org.kohsuke.accmod.restrictions.NoExternalUse;
@@ -294,7 +294,8 @@ public class GerritSCMSource extends AbstractGerritSCMSource {
   }
 
   @DataBoundSetter
-  public void setCloudflareClientIdCredentialId(@CheckForNull String cloudflareClientIdCredentialId) {
+  public void setCloudflareClientIdCredentialId(
+      @CheckForNull String cloudflareClientIdCredentialId) {
     this.cloudflareClientIdCredentialId = cloudflareClientIdCredentialId;
   }
 
@@ -305,7 +306,8 @@ public class GerritSCMSource extends AbstractGerritSCMSource {
   }
 
   @DataBoundSetter
-  public void setCloudflareClientSecretCredentialId(@CheckForNull String cloudflareClientSecretCredentialId) {
+  public void setCloudflareClientSecretCredentialId(
+      @CheckForNull String cloudflareClientSecretCredentialId) {
     this.cloudflareClientSecretCredentialId = cloudflareClientSecretCredentialId;
   }
 
@@ -391,8 +393,7 @@ public class GerritSCMSource extends AbstractGerritSCMSource {
     }
 
     public ListBoxModel doFillCloudflareClientIdCredentialIdItems(
-        @AncestorInPath Item context,
-        @QueryParameter String cloudflareClientIdCredentialId) {
+        @AncestorInPath Item context, @QueryParameter String cloudflareClientIdCredentialId) {
       return new StandardListBoxModel()
           .includeEmptyValue()
           .includeMatchingAs(
@@ -407,8 +408,7 @@ public class GerritSCMSource extends AbstractGerritSCMSource {
     }
 
     public ListBoxModel doFillCloudflareClientSecretCredentialIdItems(
-        @AncestorInPath Item context,
-        @QueryParameter String cloudflareClientSecretCredentialId) {
+        @AncestorInPath Item context, @QueryParameter String cloudflareClientSecretCredentialId) {
       return new StandardListBoxModel()
           .includeEmptyValue()
           .includeMatchingAs(

@@ -35,7 +35,6 @@ import hudson.util.ListBoxModel;
 import java.io.IOException;
 import java.net.URISyntaxException;
 import java.util.Collections;
-import org.jenkinsci.plugins.plaincredentials.StringCredentials;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -54,6 +53,7 @@ import jenkins.scm.impl.form.NamedArrayList;
 import org.apache.commons.lang.StringUtils;
 import org.eclipse.jgit.transport.URIish;
 import org.jenkinsci.plugins.gitclient.GitClient;
+import org.jenkinsci.plugins.plaincredentials.StringCredentials;
 import org.kohsuke.stapler.AncestorInPath;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.DataBoundSetter;
@@ -83,8 +83,10 @@ public class GerritSCMNavigator extends SCMNavigator {
     this.serverUrl = StringUtils.trimToNull(serverUrl);
     this.insecureHttps = insecureHttps;
     this.credentialsId = StringUtils.defaultIfBlank(credentialsId, null);
-    this.cloudflareClientIdCredentialId = StringUtils.defaultIfBlank(cloudflareClientIdCredentialId, null);
-    this.cloudflareClientSecretCredentialId = StringUtils.defaultIfBlank(cloudflareClientSecretCredentialId, null);
+    this.cloudflareClientIdCredentialId =
+        StringUtils.defaultIfBlank(cloudflareClientIdCredentialId, null);
+    this.cloudflareClientSecretCredentialId =
+        StringUtils.defaultIfBlank(cloudflareClientSecretCredentialId, null);
     this.traits =
         ofNullable(traits).map(Collections::unmodifiableList).orElseGet(Collections::emptyList);
   }
@@ -177,13 +179,14 @@ public class GerritSCMNavigator extends SCMNavigator {
   @CheckForNull
   private String resolveStringCredential(@CheckForNull String credentialId) {
     if (credentialId == null) return null;
-    StringCredentials credential = CredentialsMatchers.firstOrNull(
-        CredentialsProvider.lookupCredentials(
-            StringCredentials.class,
-            Jenkins.getInstance(),
-            ACL.SYSTEM,
-            Collections.emptyList()),
-        CredentialsMatchers.withId(credentialId));
+    StringCredentials credential =
+        CredentialsMatchers.firstOrNull(
+            CredentialsProvider.lookupCredentials(
+                StringCredentials.class,
+                Jenkins.getInstance(),
+                ACL.SYSTEM,
+                Collections.emptyList()),
+            CredentialsMatchers.withId(credentialId));
     return credential != null ? credential.getSecret().getPlainText() : null;
   }
 
@@ -252,8 +255,7 @@ public class GerritSCMNavigator extends SCMNavigator {
     }
 
     public ListBoxModel doFillCloudflareClientIdCredentialIdItems(
-        @AncestorInPath Item context,
-        @QueryParameter String cloudflareClientIdCredentialId) {
+        @AncestorInPath Item context, @QueryParameter String cloudflareClientIdCredentialId) {
       return new StandardListBoxModel()
           .includeEmptyValue()
           .includeMatchingAs(
@@ -268,8 +270,7 @@ public class GerritSCMNavigator extends SCMNavigator {
     }
 
     public ListBoxModel doFillCloudflareClientSecretCredentialIdItems(
-        @AncestorInPath Item context,
-        @QueryParameter String cloudflareClientSecretCredentialId) {
+        @AncestorInPath Item context, @QueryParameter String cloudflareClientSecretCredentialId) {
       return new StandardListBoxModel()
           .includeEmptyValue()
           .includeMatchingAs(
@@ -303,7 +304,8 @@ public class GerritSCMNavigator extends SCMNavigator {
   }
 
   @DataBoundSetter
-  public void setCloudflareClientIdCredentialId(@CheckForNull String cloudflareClientIdCredentialId) {
+  public void setCloudflareClientIdCredentialId(
+      @CheckForNull String cloudflareClientIdCredentialId) {
     this.cloudflareClientIdCredentialId = cloudflareClientIdCredentialId;
   }
 
@@ -313,7 +315,8 @@ public class GerritSCMNavigator extends SCMNavigator {
   }
 
   @DataBoundSetter
-  public void setCloudflareClientSecretCredentialId(@CheckForNull String cloudflareClientSecretCredentialId) {
+  public void setCloudflareClientSecretCredentialId(
+      @CheckForNull String cloudflareClientSecretCredentialId) {
     this.cloudflareClientSecretCredentialId = cloudflareClientSecretCredentialId;
   }
 

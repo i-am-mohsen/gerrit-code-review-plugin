@@ -91,7 +91,6 @@ import org.eclipse.jgit.treewalk.TreeWalk;
 import org.jenkinsci.plugins.gitclient.FetchCommand;
 import org.jenkinsci.plugins.gitclient.Git;
 import org.jenkinsci.plugins.gitclient.GitClient;
-import org.jenkinsci.plugins.gitclient.RepositoryCallback;
 import org.jenkinsci.plugins.plaincredentials.StringCredentials;
 
 public abstract class AbstractGerritSCMSource extends AbstractGitSCMSource {
@@ -705,22 +704,26 @@ public abstract class AbstractGerritSCMSource extends AbstractGitSCMSource {
         String cfClientId = resolveCloudflareClientId();
         String cfClientSecret = resolveCloudflareClientSecret();
         String remoteUrl = getRemote();
-        boolean needsCfHeaders = cfClientId != null && cfClientSecret != null
-            && remoteUrl != null
-            && (remoteUrl.startsWith("http://") || remoteUrl.startsWith("https://"));
+        boolean needsCfHeaders =
+            cfClientId != null
+                && cfClientSecret != null
+                && remoteUrl != null
+                && (remoteUrl.startsWith("http://") || remoteUrl.startsWith("https://"));
         final String[] savedHeaders;
         if (needsCfHeaders) {
-          savedHeaders = client.withRepository((repo, c) -> {
-            StoredConfig config = repo.getConfig();
-            String[] existing = config.getStringList("http", remoteUrl, "extraHeader");
-            List<String> headers = new ArrayList<>();
-            headers.add("CF-Access-Client-Id: " + cfClientId);
-            headers.add("CF-Access-Client-Secret: " + cfClientSecret);
-            Collections.addAll(headers, existing);
-            config.setStringList("http", remoteUrl, "extraHeader", headers);
-            config.save();
-            return existing;
-          });
+          savedHeaders =
+              client.withRepository(
+                  (repo, c) -> {
+                    StoredConfig config = repo.getConfig();
+                    String[] existing = config.getStringList("http", remoteUrl, "extraHeader");
+                    List<String> headers = new ArrayList<>();
+                    headers.add("CF-Access-Client-Id: " + cfClientId);
+                    headers.add("CF-Access-Client-Secret: " + cfClientSecret);
+                    Collections.addAll(headers, existing);
+                    config.setStringList("http", remoteUrl, "extraHeader", headers);
+                    config.save();
+                    return existing;
+                  });
         } else {
           savedHeaders = new String[0];
         }
@@ -728,16 +731,18 @@ public abstract class AbstractGerritSCMSource extends AbstractGitSCMSource {
           fetch.from(remoteURI, fetchRefSpecs).execute();
         } finally {
           if (needsCfHeaders) {
-            client.withRepository((repo, c) -> {
-              StoredConfig config = repo.getConfig();
-              if (savedHeaders.length > 0) {
-                config.setStringList("http", remoteUrl, "extraHeader", Arrays.asList(savedHeaders));
-              } else {
-                config.unset("http", remoteUrl, "extraHeader");
-              }
-              config.save();
-              return null;
-            });
+            client.withRepository(
+                (repo, c) -> {
+                  StoredConfig config = repo.getConfig();
+                  if (savedHeaders.length > 0) {
+                    config.setStringList(
+                        "http", remoteUrl, "extraHeader", Arrays.asList(savedHeaders));
+                  } else {
+                    config.unset("http", remoteUrl, "extraHeader");
+                  }
+                  config.save();
+                  return null;
+                });
           }
         }
       }
@@ -800,13 +805,14 @@ public abstract class AbstractGerritSCMSource extends AbstractGitSCMSource {
   private String resolveCloudflareClientId() {
     String credentialId = getCloudflareClientIdCredentialId();
     if (credentialId == null) return null;
-    StringCredentials credential = CredentialsMatchers.firstOrNull(
-        CredentialsProvider.lookupCredentials(
-            StringCredentials.class,
-            Jenkins.getInstance(),
-            ACL.SYSTEM,
-            Collections.emptyList()),
-        CredentialsMatchers.withId(credentialId));
+    StringCredentials credential =
+        CredentialsMatchers.firstOrNull(
+            CredentialsProvider.lookupCredentials(
+                StringCredentials.class,
+                Jenkins.getInstance(),
+                ACL.SYSTEM,
+                Collections.emptyList()),
+            CredentialsMatchers.withId(credentialId));
     return credential != null ? credential.getSecret().getPlainText() : null;
   }
 
@@ -814,13 +820,14 @@ public abstract class AbstractGerritSCMSource extends AbstractGitSCMSource {
   private String resolveCloudflareClientSecret() {
     String credentialId = getCloudflareClientSecretCredentialId();
     if (credentialId == null) return null;
-    StringCredentials credential = CredentialsMatchers.firstOrNull(
-        CredentialsProvider.lookupCredentials(
-            StringCredentials.class,
-            Jenkins.getInstance(),
-            ACL.SYSTEM,
-            Collections.emptyList()),
-        CredentialsMatchers.withId(credentialId));
+    StringCredentials credential =
+        CredentialsMatchers.firstOrNull(
+            CredentialsProvider.lookupCredentials(
+                StringCredentials.class,
+                Jenkins.getInstance(),
+                ACL.SYSTEM,
+                Collections.emptyList()),
+            CredentialsMatchers.withId(credentialId));
     return credential != null ? credential.getSecret().getPlainText() : null;
   }
 

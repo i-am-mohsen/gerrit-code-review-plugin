@@ -645,14 +645,6 @@ public abstract class AbstractGerritSCMSource extends AbstractGitSCMSource {
 
       EnvVars envVars = new EnvVars(EnvVars.masterEnvVars);
       if (needsCfHeaders) {
-        String cfHeaderKey;
-        try {
-          cfHeaderKey =
-              "http." + new URIish(remoteUrl).getHost() + "/.extraHeader";
-        } catch (URISyntaxException e) {
-          throw new IOException(e);
-        }
-
         int count = 0;
         String existingCount = envVars.get("GIT_CONFIG_COUNT");
         if (existingCount != null) {
@@ -662,11 +654,11 @@ public abstract class AbstractGerritSCMSource extends AbstractGitSCMSource {
             // ignore
           }
         }
-        envVars.put("GIT_CONFIG_KEY_" + count, cfHeaderKey);
+        envVars.put("GIT_CONFIG_KEY_" + count, "http.extraHeader");
         envVars.put(
             "GIT_CONFIG_VALUE_" + count, "CF-Access-Client-Id: " + cfClientId);
         count++;
-        envVars.put("GIT_CONFIG_KEY_" + count, cfHeaderKey);
+        envVars.put("GIT_CONFIG_KEY_" + count, "http.extraHeader");
         envVars.put(
             "GIT_CONFIG_VALUE_" + count,
             "CF-Access-Client-Secret: " + cfClientSecret);
@@ -699,12 +691,12 @@ public abstract class AbstractGerritSCMSource extends AbstractGitSCMSource {
                 // ignore
               }
             }
-            EnvVars.masterEnvVars.put("GIT_CONFIG_KEY_" + mc, cfHeaderKey);
+            EnvVars.masterEnvVars.put("GIT_CONFIG_KEY_" + mc, "http.extraHeader");
             EnvVars.masterEnvVars.put(
                 "GIT_CONFIG_VALUE_" + mc,
                 "CF-Access-Client-Id: " + cfClientId);
             mc++;
-            EnvVars.masterEnvVars.put("GIT_CONFIG_KEY_" + mc, cfHeaderKey);
+            EnvVars.masterEnvVars.put("GIT_CONFIG_KEY_" + mc, "http.extraHeader");
             EnvVars.masterEnvVars.put(
                 "GIT_CONFIG_VALUE_" + mc,
                 "CF-Access-Client-Secret: " + cfClientSecret);
